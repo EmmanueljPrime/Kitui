@@ -1,29 +1,53 @@
-<template>
-  <div>
-    <!-- Bouton de sauvegarde -->
-    <button class="save-button" @click="openSaveModal">
-      <span class="save-icon">💾</span> Enregistrer
-    </button>
 
-    <!-- Modal -->
+<template>
+  <div class="editor-header">
+    <input
+        :value="kitName"
+        @input="$emit('update:kitName', $event.target.value)"
+        type="text"
+        class="kit-name-input"
+        placeholder="Nom de votre Kit UI"
+    />
+
+    <div class="kit-actions">
+      <button class="generate-button" @click="generateCSS">
+        Générer CSS
+      </button>
+      <!-- Bouton de sauvegarde qui ouvre la modal -->
+      <button class="save-button" @click="openSaveModal">
+        <span class="save-icon">💾</span>
+        Enregistrer
+      </button>
+    </div>
+
+    <!-- Modal de sauvegarde du kit -->
     <div v-if="showSaveModal" class="modal-overlay" @click="showSaveModal = false">
-      <div class="modal-content" @click.stop>
+      <div class="modal-content save-modal" @click.stop>
         <div class="modal-header">
           <h3>Sauvegarder le kit</h3>
           <button class="close-button" @click="showSaveModal = false">×</button>
         </div>
-
         <div class="modal-body">
           <div class="form-group">
             <label for="kit-name">Nom du kit</label>
-            <input id="kit-name" v-model="kitToSave.name" type="text" class="form-input" />
+            <input
+                id="kit-name"
+                v-model="kitToSave.name"
+                type="text"
+                class="form-input"
+                placeholder="Entrez un nom pour votre kit"
+            />
           </div>
-
           <div class="form-group">
             <label for="kit-description">Description</label>
-            <textarea id="kit-description" v-model="kitToSave.description" rows="3" class="form-textarea"></textarea>
+            <textarea
+                id="kit-description"
+                v-model="kitToSave.description"
+                class="form-textarea"
+                placeholder="Décrivez brièvement ce kit (optionnel)"
+                rows="3"
+            ></textarea>
           </div>
-
           <div class="form-group">
             <label for="kit-tags">Tags</label>
             <div class="tag-input-container">
@@ -35,34 +59,41 @@
                   placeholder="Séparez les tags par des virgules"
                   @keydown.enter.prevent="addTag"
                   @keydown.tab.prevent="addTag"
+                  @keydown.comma.prevent="addTagFromComma"
               />
-              <button type="button" class="add-tag-button" @click="addTag" :disabled="!tagsInput.trim()">Ajouter</button>
+              <button
+                  type="button"
+                  class="add-tag-button"
+                  @click="addTag"
+                  :disabled="!tagsInput.trim()"
+              >
+                Ajouter
+              </button>
             </div>
             <div class="tags-container" v-if="kitToSave.tags.length > 0">
               <span v-for="(tag, index) in kitToSave.tags" :key="index" class="tag">
-                {{ tag }} <button class="tag-remove" @click="removeTag(index)">×</button>
+                {{ tag }}
+                <button type="button" class="tag-remove" @click="removeTag(index)">×</button>
               </span>
             </div>
           </div>
-
           <div class="form-group">
             <label class="checkbox-label">
               <input type="checkbox" v-model="kitToSave.isPublic" />
               Rendre ce kit public
+              <span class="helper-text">Les kits publics sont visibles par tous les utilisateurs</span>
             </label>
           </div>
-
           <div class="form-group" v-if="existingKits.length > 0">
             <label for="overwrite-kit">Écraser un kit existant</label>
             <select id="overwrite-kit" v-model="kitToSave.overwriteId" class="form-select">
               <option value="">Créer un nouveau kit</option>
               <option v-for="kit in existingKits" :key="kit.id" :value="kit.id">
-                {{ kit.name }} ({{ formatDate(kit.updatedAt) }})
+                {{ kit.name }} (Modifié le {{ formatDate(kit.updatedAt) }})
               </option>
             </select>
           </div>
         </div>
-
         <div class="modal-footer">
           <button type="button" class="cancel-button" @click="showSaveModal = false">Annuler</button>
           <button
@@ -82,10 +113,10 @@
       </div>
     </div>
 
-    <!-- Notification -->
-    <div class="save-notification" :class="{ show: showSaveNotification }">
+    <!-- Notification de sauvegarde réussie -->
+    <div class="save-notification" :class="{ 'show': showSaveNotification }">
       <div class="notification-icon">✓</div>
-      <div>
+      <div class="notification-content">
         <p class="notification-title">Sauvegarde réussie</p>
         <p class="notification-message">{{ saveNotificationMessage }}</p>
       </div>
@@ -94,8 +125,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
-import type { PropType } from 'vue';
+import { defineComponent, ref, PropType, onMounted } from 'vue';
 
 interface Kit {
   id: number;
@@ -109,25 +139,41 @@ interface Kit {
   tags: string[];
 }
 
-
 export default defineComponent({
-  name: 'KitSaveComponent',
+  name: 'EditorHeader',
   props: {
-    config: Object as PropType<any>,
-    kitName: String,
-    userId: Number
+    kitName: {
+      type: String,
+      required: true
+    },
+    isPreviewActive: {
+      type: Boolean,
+      default: false
+    },
+    config: {
+      type: Object as PropType<any>,
+      required: true
+    },
+    userId: {
+      type: Number,
+      required: true
+    }
   },
-  emits: ['update:kitName', 'kit-saved'],
+  emits: ['update:kitName', 'togglePreview', 'generateCSS', 'kit-saved'],
   setup(props, { emit }) {
+    // État de la modal et de la sauvegarde
     const showSaveModal = ref(false);
     const isSaving = ref(false);
     const tagsInput = ref('');
     const existingKits = ref<Kit[]>([]);
+
+    // Notification
     const showSaveNotification = ref(false);
     const saveNotificationMessage = ref('');
 
+    // Données du kit à sauvegarder
     const kitToSave = ref({
-      name: props.kitName || '',
+      name: props.kitName,
       description: '',
       config: {},
       tags: [] as string[],
@@ -135,102 +181,188 @@ export default defineComponent({
       overwriteId: ''
     });
 
+    // Charger les kits existants
+    const loadExistingKits = async () => {
+      try {
+        const response = await fetch(`/api/users/${props.userId}/kits`);
+        if (!response.ok) {
+          throw new Error('Erreur lors du chargement des kits');
+        }
+
+        existingKits.value = await response.json();
+      } catch (error) {
+        console.error('Erreur lors du chargement des kits:', error);
+        existingKits.value = []; // Initialiser à un tableau vide en cas d'erreur
+      }
+    };
+
+    // Méthodes pour l'EditorHeader original
+    const togglePreview = () => {
+      emit('togglePreview');
+    };
+
+    const generateCSS = () => {
+      emit('generateCSS');
+    };
+
+    // Ouvrir la modal de sauvegarde
     const openSaveModal = () => {
+      // Réinitialiser le formulaire avec les données actuelles
       kitToSave.value = {
-        name: props.kitName || '',
+        name: props.kitName,
         description: '',
         config: JSON.parse(JSON.stringify(props.config)),
         tags: [],
         isPublic: false,
         overwriteId: ''
       };
-      if (existingKits.value.length === 0) loadExistingKits();
+
+      // Charger les kits existants si nécessaire
+      if (existingKits.value.length === 0) {
+        loadExistingKits();
+      }
+
+      // Ouvrir la modal
       showSaveModal.value = true;
     };
 
-    const loadExistingKits = async () => {
-      console.log('userId:', props.userId);
-      if (!props.userId) return; // évite un appel si pas encore de userId
-      try {
-        console.log('userId:', props.userId);
-        const res = await fetch(`/api/users/${props.userId}/kits`);
-        if (!res.ok) throw new Error('Erreur lors du chargement des kits');
-        existingKits.value = await res.json();
-      } catch (err) {
-        console.warn('Aucun kit trouvé ou erreur chargement', err);
-        existingKits.value = []; // on vide quand même la liste
-      }
-    };
-
+    // Ajouter un tag
     const addTag = () => {
-      const input = tagsInput.value.trim();
-      const tags = input.split(',').map(t => t.trim()).filter(t => t && !kitToSave.value.tags.includes(t));
-      if (tags.length) {
-        kitToSave.value.tags.push(...tags);
+      if (!tagsInput.value.trim()) return;
+
+      const tags = tagsInput.value.split(',')
+          .map(tag => tag.trim())
+          .filter(tag => tag && !kitToSave.value.tags.includes(tag));
+
+      if (tags.length > 0) {
+        kitToSave.value.tags = [...kitToSave.value.tags, ...tags];
         tagsInput.value = '';
       }
     };
 
+    // Ajouter un tag quand l'utilisateur tape une virgule
+    const addTagFromComma = () => {
+      // Supprimer la virgule qui a déclenché l'événement
+      const tagText = tagsInput.value.replace(/,$/, '').trim();
+
+      if (tagText && !kitToSave.value.tags.includes(tagText)) {
+        kitToSave.value.tags.push(tagText);
+        tagsInput.value = '';
+      }
+    };
+
+    // Supprimer un tag
     const removeTag = (index: number) => {
       kitToSave.value.tags.splice(index, 1);
     };
 
-    const formatDate = (date: string) => {
+    // Formater la date pour l'affichage
+    const formatDate = (dateString: string) => {
+      if (!dateString) return '';
+
+      const date = new Date(dateString);
       return new Intl.DateTimeFormat('fr-FR', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
-      }).format(new Date(date));
+      }).format(date);
     };
 
+    // Confirmer la sauvegarde du kit
     const confirmSaveKit = async () => {
       if (!kitToSave.value.name.trim()) return;
+
+      // Ajouter les tags restants s'il y en a
       addTag();
+
+      // Commencer le processus de sauvegarde
       isSaving.value = true;
 
-      const payload = {
-        name: kitToSave.value.name,
-        description: kitToSave.value.description || '',
-        config: kitToSave.value.config,
-        tags: kitToSave.value.tags,
-        isPublic: kitToSave.value.isPublic,
-        userId: props.userId
-      };
-
       try {
-        const response = await fetch(
-            kitToSave.value.overwriteId ? `/api/kits/${kitToSave.value.overwriteId}` : '/api/kits',
-            {
-              method: kitToSave.value.overwriteId ? 'PUT' : 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-              credentials: 'include'
-            }
-        );
+        // Créer l'objet de kit à envoyer à l'API
+        const kitData = {
+          name: kitToSave.value.name,
+          description: kitToSave.value.description || '',
+          config: kitToSave.value.config,
+          tags: kitToSave.value.tags,
+          isPublic: kitToSave.value.isPublic,
+          userId: props.userId
+        };
 
-        if (!response.ok) throw new Error('Échec de la sauvegarde');
+        let response;
+        let savedKit;
 
-        const savedKit = await response.json();
+        // Mettre à jour ou créer un nouveau kit
+        if (kitToSave.value.overwriteId) {
+          // Mettre à jour un kit existant
+          response = await fetch(`/api/kits/${kitToSave.value.overwriteId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(kitData)
+          });
+
+          saveNotificationMessage.value = `Le kit "${kitToSave.value.name}" a été mis à jour avec succès!`;
+        } else {
+          // Créer un nouveau kit
+          response = await fetch('/api/kits', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(kitData)
+          });
+
+          saveNotificationMessage.value = `Le kit "${kitToSave.value.name}" a été créé avec succès!`;
+        }
+
+        if (!response.ok) {
+          throw new Error('Erreur lors de la sauvegarde du kit');
+        }
+
+        savedKit = await response.json();
+
+        // Mettre à jour le nom du kit dans le parent
         emit('update:kitName', kitToSave.value.name);
+
+        // Émettre un événement pour indiquer que le kit a été sauvegardé
         emit('kit-saved', savedKit);
+
+        // Fermer la modal
         showSaveModal.value = false;
-        saveNotificationMessage.value = `Le kit "${kitToSave.value.name}" a été ${kitToSave.value.overwriteId ? 'mis à jour' : 'créé'} avec succès !`;
+
+        // Afficher la notification
         showSaveNotification.value = true;
-        setTimeout(() => (showSaveNotification.value = false), 3000);
+        setTimeout(() => {
+          showSaveNotification.value = false;
+        }, 3000);
+
+        // Recharger les kits existants
         loadExistingKits();
-      } catch (err) {
-        console.error(err);
-        alert('Erreur lors de la sauvegarde');
+
+        return savedKit;
+      } catch (error) {
+        console.error('Erreur lors de la sauvegarde du kit:', error);
+        alert('Une erreur est survenue lors de la sauvegarde du kit.');
       } finally {
         isSaving.value = false;
       }
     };
 
-    loadExistingKits();
+    // Charger les kits au montage du composant
+    onMounted(() => {
+      loadExistingKits();
+    });
 
     return {
+      // Méthodes de l'EditorHeader original
+      togglePreview,
+      generateCSS,
+
+      // État et méthodes pour la sauvegarde
       showSaveModal,
       isSaving,
       tagsInput,
@@ -238,8 +370,10 @@ export default defineComponent({
       kitToSave,
       showSaveNotification,
       saveNotificationMessage,
+
       openSaveModal,
       addTag,
+      addTagFromComma,
       removeTag,
       formatDate,
       confirmSaveKit
@@ -249,27 +383,77 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* Styles pour le bouton de sauvegarde principal */
-.save-button {
+/* Styles existants de l'EditorHeader */
+.editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.kit-name-input {
+  padding: 0.5rem 1rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.kit-name-input:focus {
+  outline: none;
+  border-color: #e2e8f0;
+  background-color: white;
+}
+
+.kit-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.preview-button, .generate-button, .save-button {
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+}
+
+.preview-button {
+  background-color: #f1f5f9;
+  color: #1e293b;
+  border: none;
+}
+
+.preview-button:hover {
+  background-color: #e2e8f0;
+}
+
+.generate-button {
   background-color: #42b983;
   color: white;
   border: none;
-  border-radius: 0.375rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
 }
 
-.save-button:hover {
+.generate-button:hover {
   background-color: #3aa876;
 }
 
+.save-button {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+}
+
+.save-button:hover {
+  background-color: #2563eb;
+}
+
 .save-icon {
-  font-size: 1.125rem;
+  font-size: 1rem;
 }
 
 /* Styles pour la modal de sauvegarde */
@@ -465,7 +649,7 @@ export default defineComponent({
   color: #ef4444;
 }
 
-/* Boutons */
+/* Boutons de la modal */
 .cancel-button, .save-confirm-button {
   padding: 0.625rem 1rem;
   border-radius: 0.375rem;
@@ -587,5 +771,39 @@ export default defineComponent({
   font-size: 0.875rem;
   color: #4b5563;
   margin: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .editor-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .kit-name-input {
+    width: 100%;
+  }
+
+  .kit-actions {
+    width: 100%;
+  }
+
+  .preview-button, .generate-button, .save-button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .form-group label {
+    margin-bottom: 0.5rem;
+  }
+
+  .tag-input-container {
+    flex-direction: column;
+  }
+
+  .add-tag-button {
+    margin-top: 0.5rem;
+  }
 }
 </style>

@@ -28,7 +28,7 @@
             </div>
             <div class="stat-info">
               <h3 class="stat-title">Kits UI créés</h3>
-              <p class="stat-value">12</p>
+              <p class="stat-value">{{ kits.length }}</p>
             </div>
           </div>
 

@@ -125,7 +125,7 @@ export default defineComponent({
     const userStore = useUserStore();
     const kitStore = useKitStore();
     const kitId = route.params.id as string;
-    const config = ref<any>(null);
+    // const config = ref<any>(null);
     console.log('User connecté :', userStore.userId); // <-- Assure-toi qu'il contient un ID numérique
     const previewFrame = ref<HTMLIFrameElement | null>(null);
     const fullPreviewFrame = ref<HTMLIFrameElement | null>(null);
@@ -144,6 +144,91 @@ export default defineComponent({
     console.log('📦 Kit ID:', kitId);
     console.log('📦 Route path:', route.path);
     console.log('📦 Route name:', route.name);
+
+    const config = ref({
+      layout: {
+        container: {
+          maxWidth: 1200,
+          padding: 16
+        },
+        grid: {
+          columns: 12,
+          gap: 16,
+          breakpoints: [
+            { name: 'sm', value: 576 },
+            { name: 'md', value: 768 },
+            { name: 'lg', value: 992 },
+            { name: 'xl', value: 1200 }
+          ]
+        }
+      },
+      colors: {
+        dark: {
+          base: '#2c3e50'
+        },
+        light: {
+          base: '#ffffff'
+        },
+        accent: '#42b983'
+      },
+      typography: {
+        text: {
+          family: "'Roboto', sans-serif",
+          size: 16
+        },
+        headings: {
+          family: "'Roboto', sans-serif",
+          sizes: [36, 30, 24, 20, 18, 16],
+          weights: [700, 700, 600, 600, 500, 500]
+        }
+      },
+      components: {
+        buttons: {
+          paddingY: 8,
+          paddingX: 16,
+          borderRadius: 4,
+          fontSize: 16,
+          borderWidth: 1,
+          borderStyle: 'solid',
+          hoverScale: 1.05,
+          hoverDarken: 5,
+          shadowEnabled: true,
+          shadowX: 0,
+          shadowY: 2,
+          shadowBlur: 8,
+          shadowSpread: 0,
+          shadowColor: '#000000',
+          shadowOpacity: 0.2,
+          transitionDuration: 300,
+          transitionTiming: 'ease',
+          fontWeight: '500'
+        },
+        cards: {
+          padding: 16,
+          innerPadding: 10,
+          borderRadius: 8,
+          borderWidth: 0,
+          borderStyle: 'solid',
+          borderColor: '#e2e8f0',
+          backgroundColor: '#ffffff',
+          shadowEnabled: true,
+          shadowX: 0,
+          shadowY: 2,
+          shadowBlur: 8,
+          shadowSpread: 0,
+          shadowColor: '#000000',
+          shadowOpacity: 0.1,
+          hoverEffect: 'lift',
+          titleWeight: '600',
+          textWeight: 'normal'
+        }
+      },
+      darkTheme: {
+        enabled: true,
+        backgroundColor: '#1a202c',
+        textColor: '#f8f9fa'
+      }
+    });
 
     // Tabs et devices pour la prévisualisation
     const tabs = [

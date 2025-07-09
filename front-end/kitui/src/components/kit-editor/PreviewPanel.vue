@@ -138,9 +138,9 @@ export default defineComponent({
       ${props.config.layout.container.shadowEnabled ?
             `box-shadow: ${props.config.layout.container.shadowX}px ${props.config.layout.container.shadowY}px ${props.config.layout.container.shadowBlur}px rgba(0,0,0,${props.config.layout.container.shadowOpacity});` : ''}
       ${props.config.layout.container.borderWidth > 0 ?
-            `border: ${props.config.layout.container.borderWidth}px solid ${props.config.layout.container.borderColor || '#e2e8f0'};` : ''}
+            `border: ${props.config.layout.container.borderWidth}px solid ${props.config.layout.container.borderColor || '1px solid #28594c'};` : ''}
       border-radius: ${props.config.layout.container.borderRadius}px;
-      background-color: ${props.config.layout.container.backgroundColor || '#ffffff'};
+      background-color: ${props.config.layout.container.backgroundColor || '#1e2f34'};
       box-sizing: border-box;
     }
 

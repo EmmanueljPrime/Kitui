@@ -60,8 +60,6 @@ export default defineComponent({
       default: () => [
         { path: '/dashboard', name: 'Dashboard', icon: '📊' },
         { path: '/kit-editor', name: 'Créer un Kit', icon: '🎨' },
-        { path: '/history', name: 'Historique', icon: '🕒' },
-        { path: '/settings', name: 'Paramètres', icon: '⚙️' }
       ]
     },
     username: {

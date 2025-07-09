@@ -193,7 +193,7 @@
         <!-- Configuration de base -->
         <div class="control-group">
           <div class="form-row">
-            <label for="grid-columns">Nombre de colonnes</label>
+            <label for="grid-columns">Nombre de case</label>
             <InputSlider
                 id="grid-columns"
                 v-model="config.layout.grid.columns"
