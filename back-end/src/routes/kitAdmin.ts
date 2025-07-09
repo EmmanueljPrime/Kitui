@@ -1,27 +1,23 @@
+// src/routes/kitAdmin.ts
 import { Router } from 'express';
-import { saveKit, getUserKits,updateKit, deleteKit } from '../controllers/kitController';
-import { authenticate } from "../middleware/authenticate";
+import { getUserKits, getKitById, createKit, updateKit } from '../controllers/kitController';
+import {authenticate, AuthenticateRequest} from '../middleware/authenticate';
 
 const router = Router();
 
-// @ts-ignore
+// Appliquer le middleware d'auth à toutes les routes de ce fichier
 router.use(authenticate);
 
-//Sauvegarde d'un nouveau kit
-// router.post('/save', saveKit)
+// Route pour afficher les kits
+router.get('/', getUserKits);
 
+// Route pour récupérer un kit
+router.get('/:id', getKitById);
 
-// Récupérer les kits d'un utilisateur
-// router.get('/user/:userId', getUserKits)
+// Route pour créer un kit
+router.post('/', createKit);
 
-
-// Mise à jour d'un kit
-// router.put('/:kitId', updateKit)
-
-
-// Suppression d'un kit
-// router.delete('/:kitId', deleteKit)
+// Route pour modifier un kit
+router.put('/:id', updateKit);
 
 export default router;
-
-

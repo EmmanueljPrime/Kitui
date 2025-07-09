@@ -1,36 +1,12 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../prismaClient'; // Assure-toi que Prisma Client est correctement importé
-
-// const login = async (req: Request, res: Response): Promise<Response> => {
-//     const { username, password } = req.body;
-//
-//     // Recherche l'utilisateur dans la base de données
-//     const user = await prisma.user.findUnique({
-//         where: { username }
-//     });
-//
-//     if (!user) {
-//         return res.status(400).json({ message: 'Utilisateur non trouvé' });
-//     }
-//
-//     // Vérifie le mot de passe
-//     const isPasswordValid = await bcrypt.compare(password, user.password);
-//     if (!isPasswordValid) {
-//         return res.status(400).json({ message: 'Mot de passe incorrect' });
-//     }
-//
-//     const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
-//
-//     return res.json({ message: 'Authentification réussie', token });
-// };
+import { prisma } from '../prismaClient';
 
 const login = async (req: Request, res: Response): Promise<Response> => {
     const { username, password } = req.body;
 
     try {
-        // Recherche l'utilisateur dans la base de données
         const user = await prisma.user.findUnique({
             where: { username }
         });
@@ -39,21 +15,35 @@ const login = async (req: Request, res: Response): Promise<Response> => {
             return res.status(400).json({ message: 'Utilisateur non trouvé' });
         }
 
-        // Vérifie le mot de passe
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
             return res.status(400).json({ message: 'Mot de passe incorrect' });
         }
 
-        // Génère le token JWT
-        const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
+        // 👉 Corrigé : on inclut l'ID de l'utilisateur dans le token pour l'utiliser dans les routes protégées
+        const token = jwt.sign(
+            { userId: user.id },
+            process.env.JWT_SECRET as string,
+            { expiresIn: '1h' }
+        );
 
-        return res.json({ message: 'Authentification réussie', token });
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 1000 * 60 * 60 * 24 * 7 // 7 jours
+        });
+        return res.json({
+            message: 'Authentification réussie',
+            user: {
+                id: user.id,
+                username: user.username,
+            }
+        });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: 'Erreur serveur' });
     }
 };
-
 
 export { login };

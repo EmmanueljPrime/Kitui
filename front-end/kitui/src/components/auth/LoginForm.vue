@@ -81,6 +81,7 @@ export default defineComponent({
           headers: {
             'Content-Type': 'application/json',
           },
+          credentials: 'include',
           body: JSON.stringify({
             username: username.value,
             password: password.value,
@@ -91,7 +92,7 @@ export default defineComponent({
           const data = await response.json();
 
           // Utilisation du store pour stocker les informations utilisateur
-          userStore.setUser(username.value, data.token);
+          userStore.setUser(data.user.id, data.user.username, '');
 
           if (rememberMe.value) {
             localStorage.setItem('remember_username', username.value);

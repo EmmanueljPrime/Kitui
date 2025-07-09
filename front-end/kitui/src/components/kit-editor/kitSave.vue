@@ -1,351 +1,245 @@
 <template>
-    <div>
-        <!-- Bouton de sauvegarde qui apparaît dans la barre d'action -->
-<button class="save-button" @click="openSaveModal">
-<span class="save-icon">💾</span>
-Enregistrer
-</button>
-
-<!-- Modal de sauvegarde du kit -->
-<div v-if="showSaveModal" class="modal-overlay" @click="showSaveModal = false">
-<div class="modal-content save-modal" @click.stop>
-<div class="modal-header">
-    <h3>Sauvegarder le kit</h3>
-<button class="close-button" @click="showSaveModal = false">×</button>
-</div>
-<div class="modal-body">
-<div class="form-group">
-    <label for="kit-name">Nom du kit</label>
-<input
-id="kit-name"
-v-model="kitToSave.name"
-type="text"
-class="form-input"
-placeholder="Entrez un nom pour votre kit"
-    />
-    </div>
-    <div class="form-group">
-    <label for="kit-description">Description</label>
-    <textarea
-    id="kit-description"
-v-model="kitToSave.description"
-class="form-textarea"
-placeholder="Décrivez brièvement ce kit (optionnel)"
-rows="3"
-    ></textarea>
-    </div>
-    <div class="form-group">
-    <label for="kit-tags">Tags</label>
-    <div class="tag-input-container">
-<input
-    id="kit-tags"
-v-model="tagsInput"
-type="text"
-class="form-input"
-placeholder="Séparez les tags par des virgules"
-@keydown.enter.prevent="addTag"
-@keydown.tab.prevent="addTag"
-@keydown.comma.prevent="addTagFromComma"
-/>
-<button
-    type="button"
-class="add-tag-button"
-@click="addTag"
-:disabled="!tagsInput.trim()"
-    >
-    Ajouter
+  <div>
+    <!-- Bouton de sauvegarde -->
+    <button class="save-button" @click="openSaveModal">
+      <span class="save-icon">💾</span> Enregistrer
     </button>
-    </div>
-    <div class="tags-container" v-if="kitToSave.tags.length > 0">
-    <span v-for="(tag, index) in kitToSave.tags" :key="index" class="tag">
-    {{ tag }}
-<button type="button" class="tag-remove" @click="removeTag(index)">×</button>
-</span>
-</div>
-</div>
-<div class="form-group">
-<label class="checkbox-label">
-<input type="checkbox" v-model="kitToSave.isPublic" />
-    Rendre ce kit public
-<span class="helper-text">Les kits publics sont visibles par tous les utilisateurs</span>
-</label>
-</div>
-<div class="form-group" v-if="existingKits.length > 0">
-    <label for="overwrite-kit">Écraser un kit existant</label>
-<select id="overwrite-kit" v-model="kitToSave.overwriteId" class="form-select">
-<option value="">Créer un nouveau kit</option>
-<option v-for="kit in existingKits" :key="kit.id" :value="kit.id">
-    {{ kit.name }} (Modifié le {{ formatDate(kit.updatedAt) }})
-</option>
-</select>
-</div>
-</div>
-<div class="modal-footer">
-<button type="button" class="cancel-button" @click="showSaveModal = false">Annuler</button>
-    <button
-type="button"
-class="save-confirm-button"
-:disabled="!kitToSave.name.trim() || isSaving"
-@click="confirmSaveKit"
-    >
-    <span v-if="isSaving" class="saving-indicator">
-<span class="saving-dot"></span>
-    <span class="saving-dot"></span>
-    <span class="saving-dot"></span>
-    </span>
-    <span v-else>Sauvegarder</span>
-</button>
-</div>
-</div>
-</div>
 
-<!-- Notification de sauvegarde réussie -->
-<div class="save-notification" :class="{ 'show': showSaveNotification }">
-<div class="notification-icon">✓</div>
-<div class="notification-content">
-<p class="notification-title">Sauvegarde réussie</p>
-<p class="notification-message">{{ saveNotificationMessage }}</p>
-</div>
-</div>
-</div>
+    <!-- Modal -->
+    <div v-if="showSaveModal" class="modal-overlay" @click="showSaveModal = false">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Sauvegarder le kit</h3>
+          <button class="close-button" @click="showSaveModal = false">×</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="kit-name">Nom du kit</label>
+            <input id="kit-name" v-model="kitToSave.name" type="text" class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label for="kit-description">Description</label>
+            <textarea id="kit-description" v-model="kitToSave.description" rows="3" class="form-textarea"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="kit-tags">Tags</label>
+            <div class="tag-input-container">
+              <input
+                  id="kit-tags"
+                  v-model="tagsInput"
+                  type="text"
+                  class="form-input"
+                  placeholder="Séparez les tags par des virgules"
+                  @keydown.enter.prevent="addTag"
+                  @keydown.tab.prevent="addTag"
+              />
+              <button type="button" class="add-tag-button" @click="addTag" :disabled="!tagsInput.trim()">Ajouter</button>
+            </div>
+            <div class="tags-container" v-if="kitToSave.tags.length > 0">
+              <span v-for="(tag, index) in kitToSave.tags" :key="index" class="tag">
+                {{ tag }} <button class="tag-remove" @click="removeTag(index)">×</button>
+              </span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="kitToSave.isPublic" />
+              Rendre ce kit public
+            </label>
+          </div>
+
+          <div class="form-group" v-if="existingKits.length > 0">
+            <label for="overwrite-kit">Écraser un kit existant</label>
+            <select id="overwrite-kit" v-model="kitToSave.overwriteId" class="form-select">
+              <option value="">Créer un nouveau kit</option>
+              <option v-for="kit in existingKits" :key="kit.id" :value="kit.id">
+                {{ kit.name }} ({{ formatDate(kit.updatedAt) }})
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="cancel-button" @click="showSaveModal = false">Annuler</button>
+          <button
+              type="button"
+              class="save-confirm-button"
+              :disabled="!kitToSave.name.trim() || isSaving"
+              @click="confirmSaveKit"
+          >
+            <span v-if="isSaving" class="saving-indicator">
+              <span class="saving-dot"></span>
+              <span class="saving-dot"></span>
+              <span class="saving-dot"></span>
+            </span>
+            <span v-else>Sauvegarder</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="save-notification" :class="{ show: showSaveNotification }">
+      <div class="notification-icon">✓</div>
+      <div>
+        <p class="notification-title">Sauvegarde réussie</p>
+        <p class="notification-message">{{ saveNotificationMessage }}</p>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, PropType } from 'vue';
+import { defineComponent, ref } from 'vue';
+import type { PropType } from 'vue';
 
 interface Kit {
-    id: number;
-    name: string;
-    description: string | null;
-    isPublic: boolean;
-    config: any;
-    createdAt: string;
-    updatedAt: string;
-    userId: number;
-    tags: string[];
+  id: number;
+  name: string;
+  description: string | null;
+  isPublic: boolean;
+  config: any;
+  createdAt: string;
+  updatedAt: string;
+  userId: number;
+  tags: string[];
 }
 
 export default defineComponent({
-    name: 'KitSaveComponent',
-    props: {
-        config: {
-            type: Object as PropType<any>,
-            required: true
-        },
-        kitName: {
-            type: String,
-            required: true
-        },
-        userId: {
-            type: Number,
-            required: true
-        }
-    },
-    emits: ['update:kitName', 'kit-saved'],
-    setup(props, { emit }) {
-        // État de la modal et de la sauvegarde
-        const showSaveModal = ref(false);
-        const isSaving = ref(false);
-        const tagsInput = ref('');
-        const existingKits = ref<Kit[]>([]);
+  name: 'KitSaveComponent',
+  props: {
+    config: Object as PropType<any>,
+    kitName: String,
+    userId: Number
+  },
+  emits: ['update:kitName', 'kit-saved'],
+  setup(props, { emit }) {
+    const showSaveModal = ref(false);
+    const isSaving = ref(false);
+    const tagsInput = ref('');
+    const existingKits = ref<Kit[]>([]);
+    const showSaveNotification = ref(false);
+    const saveNotificationMessage = ref('');
 
-        // Notification
-        const showSaveNotification = ref(false);
-        const saveNotificationMessage = ref('');
+    const kitToSave = ref({
+      name: props.kitName || '',
+      description: '',
+      config: {},
+      tags: [] as string[],
+      isPublic: false,
+      overwriteId: ''
+    });
 
-        // Données du kit à sauvegarder
-        const kitToSave = ref({
-            name: props.kitName,
-            description: '',
-            config: {},
-            tags: [] as string[],
-            isPublic: false,
-            overwriteId: ''
-        });
+    const openSaveModal = () => {
+      kitToSave.value = {
+        name: props.kitName || '',
+        description: '',
+        config: JSON.parse(JSON.stringify(props.config)),
+        tags: [],
+        isPublic: false,
+        overwriteId: ''
+      };
+      if (existingKits.value.length === 0) loadExistingKits();
+      showSaveModal.value = true;
+    };
 
-        // Charger les kits existants
-        const loadExistingKits = async () => {
-            try {
-                const response = await fetch(`/api/users/${props.userId}/kits`);
-                if (!response.ok) {
-                    throw new Error('Erreur lors du chargement des kits');
-                }
+    const loadExistingKits = async () => {
+      try {
+        const res = await fetch(`/api/users/${props.userId}/kits`);
+        if (!res.ok) throw new Error('Erreur lors du chargement des kits');
+        existingKits.value = await res.json();
+      } catch (err) {
+        console.error(err);
+        existingKits.value = [];
+      }
+    };
 
-                existingKits.value = await response.json();
-            } catch (error) {
-                console.error('Erreur lors du chargement des kits:', error);
-                existingKits.value = []; // Initialiser à un tableau vide en cas d'erreur
+    const addTag = () => {
+      const input = tagsInput.value.trim();
+      const tags = input.split(',').map(t => t.trim()).filter(t => t && !kitToSave.value.tags.includes(t));
+      if (tags.length) {
+        kitToSave.value.tags.push(...tags);
+        tagsInput.value = '';
+      }
+    };
+
+    const removeTag = (index: number) => {
+      kitToSave.value.tags.splice(index, 1);
+    };
+
+    const formatDate = (date: string) => {
+      return new Intl.DateTimeFormat('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(new Date(date));
+    };
+
+    const confirmSaveKit = async () => {
+      if (!kitToSave.value.name.trim()) return;
+      addTag();
+      isSaving.value = true;
+
+      const payload = {
+        name: kitToSave.value.name,
+        description: kitToSave.value.description || '',
+        config: kitToSave.value.config,
+        tags: kitToSave.value.tags,
+        isPublic: kitToSave.value.isPublic,
+        userId: props.userId
+      };
+
+      try {
+        const response = await fetch(
+            kitToSave.value.overwriteId ? `/api/kits/${kitToSave.value.overwriteId}` : '/api/kits',
+            {
+              method: kitToSave.value.overwriteId ? 'PUT' : 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
             }
-        };
+        );
 
-        // Ouvrir la modal de sauvegarde
-        const openSaveModal = () => {
-            // Réinitialiser le formulaire avec les données actuelles
-            kitToSave.value = {
-                name: props.kitName,
-                description: '',
-                config: JSON.parse(JSON.stringify(props.config)),
-                tags: [],
-                isPublic: false,
-                overwriteId: ''
-            };
+        if (!response.ok) throw new Error('Échec de la sauvegarde');
 
-            // Charger les kits existants si nécessaire
-            if (existingKits.value.length === 0) {
-                loadExistingKits();
-            }
-
-            // Ouvrir la modal
-            showSaveModal.value = true;
-        };
-
-        // Ajouter un tag
-        const addTag = () => {
-            if (!tagsInput.value.trim()) return;
-
-            const tags = tagsInput.value.split(',')
-                .map(tag => tag.trim())
-                .filter(tag => tag && !kitToSave.value.tags.includes(tag));
-
-            if (tags.length > 0) {
-                kitToSave.value.tags = [...kitToSave.value.tags, ...tags];
-                tagsInput.value = '';
-            }
-        };
-
-        // Ajouter un tag quand l'utilisateur tape une virgule
-        const addTagFromComma = () => {
-            // Supprimer la virgule qui a déclenché l'événement
-            const tagText = tagsInput.value.replace(/,$/, '').trim();
-
-            if (tagText && !kitToSave.value.tags.includes(tagText)) {
-                kitToSave.value.tags.push(tagText);
-                tagsInput.value = '';
-            }
-        };
-
-        // Supprimer un tag
-        const removeTag = (index: number) => {
-            kitToSave.value.tags.splice(index, 1);
-        };
-
-        // Formater la date pour l'affichage
-        const formatDate = (dateString: string) => {
-            if (!dateString) return '';
-
-            const date = new Date(dateString);
-            return new Intl.DateTimeFormat('fr-FR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            }).format(date);
-        };
-
-        // Confirmer la sauvegarde du kit
-        const confirmSaveKit = async () => {
-            if (!kitToSave.value.name.trim()) return;
-
-            // Ajouter les tags restants s'il y en a
-            addTag();
-
-            // Commencer le processus de sauvegarde
-            isSaving.value = true;
-
-            try {
-                // Créer l'objet de kit à envoyer à l'API
-                const kitData = {
-                    name: kitToSave.value.name,
-                    description: kitToSave.value.description || '',
-                    config: kitToSave.value.config,
-                    tags: kitToSave.value.tags,
-                    isPublic: kitToSave.value.isPublic,
-                    userId: props.userId
-                };
-
-                let response;
-                let savedKit;
-
-                // Mettre à jour ou créer un nouveau kit
-                if (kitToSave.value.overwriteId) {
-                    // Mettre à jour un kit existant
-                    response = await fetch(`/api/kits/${kitToSave.value.overwriteId}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(kitData)
-                    });
-
-                    saveNotificationMessage.value = `Le kit "${kitToSave.value.name}" a été mis à jour avec succès!`;
-                } else {
-                    // Créer un nouveau kit
-                    response = await fetch('/api/kits', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(kitData)
-                    });
-
-                    saveNotificationMessage.value = `Le kit "${kitToSave.value.name}" a été créé avec succès!`;
-                }
-
-                if (!response.ok) {
-                    throw new Error('Erreur lors de la sauvegarde du kit');
-                }
-
-                savedKit = await response.json();
-
-                // Mettre à jour le nom du kit dans le parent
-                emit('update:kitName', kitToSave.value.name);
-
-                // Émettre un événement pour indiquer que le kit a été sauvegardé
-                emit('kit-saved', savedKit);
-
-                // Fermer la modal
-                showSaveModal.value = false;
-
-                // Afficher la notification
-                showSaveNotification.value = true;
-                setTimeout(() => {
-                    showSaveNotification.value = false;
-                }, 3000);
-
-                // Recharger les kits existants
-                loadExistingKits();
-
-                return savedKit;
-            } catch (error) {
-                console.error('Erreur lors de la sauvegarde du kit:', error);
-                alert('Une erreur est survenue lors de la sauvegarde du kit.');
-            } finally {
-                isSaving.value = false;
-            }
-        };
-
-        // Charger les kits au montage du composant
+        const savedKit = await response.json();
+        emit('update:kitName', kitToSave.value.name);
+        emit('kit-saved', savedKit);
+        showSaveModal.value = false;
+        saveNotificationMessage.value = `Le kit "${kitToSave.value.name}" a été ${kitToSave.value.overwriteId ? 'mis à jour' : 'créé'} avec succès !`;
+        showSaveNotification.value = true;
+        setTimeout(() => (showSaveNotification.value = false), 3000);
         loadExistingKits();
+      } catch (err) {
+        console.error(err);
+        alert('Erreur lors de la sauvegarde');
+      } finally {
+        isSaving.value = false;
+      }
+    };
 
-        return {
-            showSaveModal,
-            isSaving,
-            tagsInput,
-            existingKits,
-            kitToSave,
-            showSaveNotification,
-            saveNotificationMessage,
+    loadExistingKits();
 
-            // Méthodes
-            openSaveModal,
-            addTag,
-            addTagFromComma,
-            removeTag,
-            formatDate,
-            confirmSaveKit
-        };
-    }
+    return {
+      showSaveModal,
+      isSaving,
+      tagsInput,
+      existingKits,
+      kitToSave,
+      showSaveNotification,
+      saveNotificationMessage,
+      openSaveModal,
+      addTag,
+      removeTag,
+      formatDate,
+      confirmSaveKit
+    };
+  }
 });
 </script>
 

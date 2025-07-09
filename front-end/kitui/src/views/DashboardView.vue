@@ -41,26 +41,6 @@
               <p class="stat-value">Aujourd'hui</p>
             </div>
           </div>
-
-          <div class="stat-card">
-            <div class="stat-icon" style="background-color: rgba(255, 159, 67, 0.1); color: #ff9f43;">
-              ⭐
-            </div>
-            <div class="stat-info">
-              <h3 class="stat-title">Kit favori</h3>
-              <p class="stat-value">Portfolio Pro</p>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon" style="background-color: rgba(234, 84, 85, 0.1); color: #ea5455;">
-              ⚡
-            </div>
-            <div class="stat-info">
-              <h3 class="stat-title">Temps gagné</h3>
-              <p class="stat-value">48 heures</p>
-            </div>
-          </div>
         </div>
 
         <div class="dashboard-row">
@@ -71,87 +51,31 @@
                 <button class="panel-action">Voir tous</button>
               </div>
               <div class="kit-list">
-                <div class="kit-item">
-                  <div class="kit-color" style="background-color: #ff9f43;"></div>
-                  <div class="kit-info">
-                    <h4 class="kit-name">Landing Pro</h4>
-                    <p class="kit-date">Modifié il y a 2 heures</p>
-                  </div>
-                  <button class="kit-action">Éditer</button>
+              <div
+                  v-for="kit in kits"
+                  :key="kit.id"
+                  class="kit-item"
+              >
+                <div
+                    class="kit-color"
+                    :style="{ backgroundColor: kit.config?.colors?.accent || '#ccc' }"
+                ></div>
+                <div class="kit-info">
+                  <h4 class="kit-name">{{ kit.name }}</h4>
+                  <p class="kit-date">
+                    Créé le {{ new Date(kit.createdAt).toLocaleDateString('fr-FR') }}
+                  </p>
                 </div>
-
-                <div class="kit-item">
-                  <div class="kit-color" style="background-color: #4f81ed;"></div>
-                  <div class="kit-info">
-                    <h4 class="kit-name">Dashboard Moderne</h4>
-                    <p class="kit-date">Modifié hier</p>
-                  </div>
-                  <button class="kit-action">Éditer</button>
-                </div>
-
-                <div class="kit-item">
-                  <div class="kit-color" style="background-color: #42b983;"></div>
-                  <div class="kit-info">
-                    <h4 class="kit-name">Portfolio Créatif</h4>
-                    <p class="kit-date">Modifié il y a 3 jours</p>
-                  </div>
-                  <button class="kit-action">Éditer</button>
-                </div>
+                <button class="kit-action" @click="goToEditor(kit)">Éditer</button>
               </div>
+
+              <p v-if="kits.length === 0" style="margin-top: 1rem; color: #888;">Aucun kit créé pour le moment.</p>
+            </div>
+
             </div>
           </div>
 
-          <div class="dashboard-col">
-            <div class="dashboard-panel">
-              <div class="panel-header">
-                <h3 class="panel-title">Actions rapides</h3>
-              </div>
-              <div class="quick-actions">
-                <router-link to="/kit-editor" class="quick-action-card">
-                  <div class="quick-action-icon" style="background-color: rgba(66, 185, 131, 0.1); color: #42b983;">
-                    ➕
-                  </div>
-                  <h4 class="quick-action-title">Nouveau Kit</h4>
-                  <p class="quick-action-desc">Créer un nouveau Kit UI</p>
-                </router-link>
 
-                <div class="quick-action-card">
-                  <div class="quick-action-icon" style="background-color: rgba(79, 129, 237, 0.1); color: #4f81ed;">
-                    📤
-                  </div>
-                  <h4 class="quick-action-title">Exporter CSS</h4>
-                  <p class="quick-action-desc">Télécharger vos fichiers CSS</p>
-                </div>
-
-                <div class="quick-action-card">
-                  <div class="quick-action-icon" style="background-color: rgba(255, 159, 67, 0.1); color: #ff9f43;">
-                    📋
-                  </div>
-                  <h4 class="quick-action-title">Dupliquer</h4>
-                  <p class="quick-action-desc">Copier un kit existant</p>
-                </div>
-
-                <div class="quick-action-card">
-                  <div class="quick-action-icon" style="background-color: rgba(234, 84, 85, 0.1); color: #ea5455;">
-                    🎭
-                  </div>
-                  <h4 class="quick-action-title">Thème sombre</h4>
-                  <p class="quick-action-desc">Générer une version sombre</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="dashboard-panel mt-4">
-              <div class="panel-header">
-                <h3 class="panel-title">Votre token</h3>
-                <button class="panel-action" @click="toggleTokenVisibility">{{ showToken ? 'Masquer' : 'Afficher' }}</button>
-              </div>
-              <div class="token-display">
-                <p v-if="showToken" class="token-text">{{ token }}</p>
-                <p v-else class="token-placeholder">••••••••••••••••••••••••••••••</p>
-              </div>
-            </div>
-          </div>
         </div>
       </main>
     </div>
@@ -183,11 +107,23 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed } from 'vue';
+import { defineComponent, ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '../stores/userStore';
 import AppHeader from '../components/partials/Header.vue';
 import AppSidebar from '../components/partials/Sidebar.vue';
+import { useKitStore } from '@/stores/kitStore';
+
+interface Kit {
+  id: number;
+  name: string;
+  config: {
+    colors?: {
+      accent?: string;
+    };
+  };
+  createdAt: string;
+}
 
 export default defineComponent({
   name: 'DashboardView',
@@ -198,17 +134,44 @@ export default defineComponent({
   setup() {
     const router = useRouter();
     const userStore = useUserStore();
+    const kitStore = useKitStore();
+
 
     const pageTitle = ref('Tableau de bord');
     const isSidebarOpen = ref(false);
     const showToken = ref(false);
     const showHelpModal = ref(false);
 
+    const kits = ref<Kit[]>([]);
+
     const user = computed(() => ({
       username: userStore.username || 'Utilisateur'
     }));
 
     const token = computed(() => userStore.token || 'Aucun token trouvé');
+
+    const fetchKits = async () => {
+      try {
+        const response = await fetch('/api/kits', {
+          headers: {
+            Authorization: `Bearer ${userStore.token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Erreur lors de la récupération des kits');
+        }
+
+        const data = await response.json();
+        kits.value = data;
+      } catch (error) {
+        console.error('❌ Erreur lors du fetch des kits :', error);
+      }
+    };
+
+    onMounted(() => {
+      fetchKits();
+    });
 
     const handleLogout = () => {
       userStore.clearUser();
@@ -220,6 +183,11 @@ export default defineComponent({
       console.log('Sidebar is open:', isOpen);
     };
 
+    const goToEditor = (kit: Kit) => {
+      kitStore.setKit(kit);
+      router.push(`/kit-editor/${kit.id}`);
+    };
+
     const toggleTokenVisibility = () => {
       showToken.value = !showToken.value;
     };
@@ -229,7 +197,6 @@ export default defineComponent({
     };
 
     const showNotifications = () => {
-      // Logique pour afficher les notifications
       console.log('Afficher les notifications');
     };
 
@@ -240,15 +207,18 @@ export default defineComponent({
       isSidebarOpen,
       showToken,
       showHelpModal,
+      kits,
       handleLogout,
       handleSidebarToggle,
       toggleTokenVisibility,
       showHelp,
-      showNotifications
+      showNotifications,
+      goToEditor
     };
   }
 });
 </script>
+
 
 <style scoped>
 .dashboard-layout {

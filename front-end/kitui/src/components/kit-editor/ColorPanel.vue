@@ -87,11 +87,25 @@
 </template>
 
 <script lang="ts">
+import type { PropType } from 'vue';
+
 export default {
   props: {
-    config: Object
+    config: {
+      type: Object as PropType<{
+        colors: {
+          dark: { base: string },
+          light: { base: string },
+          accent: string
+        }
+      }>,
+      required: true
+    }
   },
   emits: ['update:config'],
+  mounted() {
+    console.log('💡 Config reçu dans ColorPanel.vue:', this.config);
+  },
   methods: {
     getVariantColor(hex: string, index: number) {
       switch (index) {
@@ -122,11 +136,10 @@ export default {
     copyColorToClipboard(color: string) {
       navigator.clipboard.writeText(color)
           .then(() => {
-            // On pourrait ajouter une notification de succès ici
-            console.log('Couleur copiée: ' + color);
+            console.log('✔️ Couleur copiée: ' + color);
           })
           .catch(err => {
-            console.error('Erreur lors de la copie: ', err);
+            console.error('❌ Erreur lors de la copie: ', err);
           });
     }
   }

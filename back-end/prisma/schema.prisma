@@ -18,12 +18,15 @@ model User {
 }
 
 model Kit {
-  id        Int      @id @default(autoincrement())
-  name      String
-  config    Json
-  userId    Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String   @default("")
+  tags        Json     @default("[]")
+  config      Json
+  isPublic    Boolean  @default(false)
+  userId      Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   //Relations
   user User @relation(fields: [userId], references: [id])

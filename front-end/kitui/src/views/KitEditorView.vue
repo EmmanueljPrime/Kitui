@@ -93,7 +93,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter,useRoute  } from 'vue-router';
 import { useUserStore } from '../stores/userStore';
 import AppHeader from '../components/partials/Header.vue';
 import AppSidebar from '../components/partials/Sidebar.vue';
@@ -104,6 +104,7 @@ import TypographyPanel from "@/components/kit-editor/TypographyPanel.vue";
 import ComponentsPanel from "@/components/kit-editor/ComponentsPanel.vue";
 import DarkThemePanel from "@/components/kit-editor/DarkThemePanel.vue";
 import PreviewPanel from "@/components/kit-editor/PreviewPanel.vue";
+import { useKitStore } from '@/stores/kitStore';
 
 export default defineComponent({
   name: 'KitEditorView',
@@ -120,7 +121,12 @@ export default defineComponent({
   },
   setup() {
     const router = useRouter();
+    const route = useRoute();
     const userStore = useUserStore();
+    const kitStore = useKitStore();
+    const kitId = route.params.id as string;
+    const config = ref<any>(null);
+    console.log('User connecté :', userStore.userId); // <-- Assure-toi qu'il contient un ID numérique
     const previewFrame = ref<HTMLIFrameElement | null>(null);
     const fullPreviewFrame = ref<HTMLIFrameElement | null>(null);
 
@@ -134,91 +140,10 @@ export default defineComponent({
     const showCSSModal = ref(false);
     const generatedCSS = ref('');
 
-    // Configuration du Kit UI
-    const config = ref({
-      layout: {
-        container: {
-          maxWidth: 1200,
-          padding: 16
-        },
-        grid: {
-          columns: 12,
-          gap: 16,
-          breakpoints: [
-            { name: 'sm', value: 576 },
-            { name: 'md', value: 768 },
-            { name: 'lg', value: 992 },
-            { name: 'xl', value: 1200 }
-          ]
-        }
-      },
-      colors: {
-        dark: {
-          base: '#2c3e50'
-        },
-        light: {
-          base: '#ffffff'
-        },
-        accent: '#42b983'
-      },
-      typography: {
-        text: {
-          family: "'Roboto', sans-serif",
-          size: 16
-        },
-        headings: {
-          family: "'Roboto', sans-serif",
-          sizes: [36, 30, 24, 20, 18, 16],
-          weights: [700, 700, 600, 600, 500, 500]
-        }
-      },
-      components: {
-        buttons: {
-          paddingY: 8,
-          paddingX: 16,
-          borderRadius: 4,
-          fontSize: 16,
-          borderWidth: 1,
-          borderStyle: 'solid',
-          hoverScale: 1.05,
-          hoverDarken: 5,
-          shadowEnabled: true,
-          shadowX: 0,
-          shadowY: 2,
-          shadowBlur: 8,
-          shadowSpread: 0,
-          shadowColor: '#000000',
-          shadowOpacity: 0.2,
-          transitionDuration: 300,
-          transitionTiming: 'ease',
-          fontWeight: '500'
-        },
-        cards: {
-          padding: 16,
-          innerPadding: 10,
-          borderRadius: 8,
-          borderWidth: 0,
-          borderStyle: 'solid',
-          borderColor: '#e2e8f0',
-          backgroundColor: '#ffffff',
-          shadowEnabled: true,
-          shadowX: 0,
-          shadowY: 2,
-          shadowBlur: 8,
-          shadowSpread: 0,
-          shadowColor: '#000000',
-          shadowOpacity: 0.1,
-          hoverEffect: 'lift',
-          titleWeight: '600',
-          textWeight: 'normal'
-        }
-      },
-      darkTheme: {
-        enabled: true,
-        backgroundColor: '#1a202c',
-        textColor: '#f8f9fa'
-      }
-    });
+    console.log('📦 Route params:', route.params);
+    console.log('📦 Kit ID:', kitId);
+    console.log('📦 Route path:', route.path);
+    console.log('📦 Route name:', route.name);
 
     // Tabs et devices pour la prévisualisation
     const tabs = [
@@ -237,7 +162,7 @@ export default defineComponent({
 
     // Informations utilisateur
     const user = computed(() => ({
-      id: userStore.userId || 1, // Ajouter l'ID de l'utilisateur
+      id: userStore.userId, // Ajouter l'ID de l'utilisateur
       username: userStore.username || 'Utilisateur'
     }));
 
@@ -688,9 +613,118 @@ ${config.value.darkTheme.enabled ? `
     }, { deep: true });
 
     // Initialisation
-    onMounted(() => {
+    onMounted(async () => {
       generateCSS();
       updatePreview();
+      if (!kitStore.currentKit && kitId) {
+        try {
+          const response = await fetch(`/api/kits/${kitId}`, {
+            headers: {
+              Authorization: `Bearer ${userStore.token}`
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error('Erreur lors de la récupération du kit');
+          }
+
+          const data = await response.json();
+          kitStore.setKit(data); // Assure-toi que cette fonction existe
+        } catch (error) {
+          console.error('❌ Impossible de charger le kit depuis l’ID :', error);
+        }
+      }
+
+      if (kitStore.currentKit && kitStore.currentKit.config) {
+        config.value = kitStore.currentKit.config;
+        console.log('✅ Kit chargé depuis le store :', kitStore.currentKit);
+      } else {
+        console.warn('❌ Aucun kit trouvé, fallback vers config par défaut');
+        config.value = {
+          layout: {
+            container: {
+              maxWidth: 1200,
+              padding: 16
+            },
+            grid: {
+              columns: 12,
+              gap: 16,
+              breakpoints: [
+                {name: 'sm', value: 576},
+                {name: 'md', value: 768},
+                {name: 'lg', value: 992},
+                {name: 'xl', value: 1200}
+              ]
+            }
+          },
+          colors: {
+            dark: {
+              base: '#2c3e50'
+            },
+            light: {
+              base: '#ffffff'
+            },
+            accent: '#42b983'
+          },
+          typography: {
+            text: {
+              family: "'Roboto', sans-serif",
+              size: 16
+            },
+            headings: {
+              family: "'Roboto', sans-serif",
+              sizes: [36, 30, 24, 20, 18, 16],
+              weights: [700, 700, 600, 600, 500, 500]
+            }
+          },
+          components: {
+            buttons: {
+              paddingY: 8,
+              paddingX: 16,
+              borderRadius: 4,
+              fontSize: 16,
+              borderWidth: 1,
+              borderStyle: 'solid',
+              hoverScale: 1.05,
+              hoverDarken: 5,
+              shadowEnabled: true,
+              shadowX: 0,
+              shadowY: 2,
+              shadowBlur: 8,
+              shadowSpread: 0,
+              shadowColor: '#000000',
+              shadowOpacity: 0.2,
+              transitionDuration: 300,
+              transitionTiming: 'ease',
+              fontWeight: '500'
+            },
+            cards: {
+              padding: 16,
+              innerPadding: 10,
+              borderRadius: 8,
+              borderWidth: 0,
+              borderStyle: 'solid',
+              borderColor: '#e2e8f0',
+              backgroundColor: '#ffffff',
+              shadowEnabled: true,
+              shadowX: 0,
+              shadowY: 2,
+              shadowBlur: 8,
+              shadowSpread: 0,
+              shadowColor: '#000000',
+              shadowOpacity: 0.1,
+              hoverEffect: 'lift',
+              titleWeight: '600',
+              textWeight: 'normal'
+            }
+          },
+          darkTheme: {
+            enabled: true,
+            backgroundColor: '#1a202c',
+            textColor: '#f8f9fa'
+          }
+        };
+      }
     });
 
     return {

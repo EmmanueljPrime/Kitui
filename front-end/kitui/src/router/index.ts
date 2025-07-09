@@ -9,6 +9,12 @@ const routes = [
   { path: '/login', component: Login },
   { path: '/dashboard', component: Dashboard },
   { path: '/kit-editor', component: kitEditor },
+  {
+    path: '/kit-editor/:id',
+    name: 'KitEditor',
+    component: kitEditor,
+    props: true
+  }
 ];
 
 const router = createRouter({

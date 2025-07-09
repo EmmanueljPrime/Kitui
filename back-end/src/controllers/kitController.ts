@@ -1,102 +1,100 @@
-import {Request, Response} from 'express';
+// src/controllers/kitController.ts
+import { Response, Request, RequestHandler } from 'express';
 import { prisma } from '../prismaClient';
-import {AuthenticateRequest} from "../middleware/authenticate";
+import { AuthenticateRequest } from "../middleware/authenticate";
 
-export const saveKit = async(req: AuthenticateRequest, res: Response) => {
-    const {kitName, config, userId} = req.body;
-    if(!kitName || !config || !userId){
-        res.status(400).send({error: 'Champs requis manquants'});
+export const getUserKits = async (req: AuthenticateRequest, res: Response) => {
+    try {
+        const userId = req.userId;
+        if (!userId) {
+            res.status(401).json({ error: 'Non autorisé' });
+            return
+        }
+
+        const kits = await prisma.kit.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' },
+        });
+
+        res.status(200).json(kits);
+    } catch (error) {
+        console.error("Erreur récupération des kits :", error);
+        res.status(500).json({ error: "Erreur serveur" });
     }
+};
 
-    if(req.userId !== userId){
-        res.status(403).send({error: 'Non Autorisé'});
-    }
+export const getKitById = async (req: AuthenticateRequest, res: Response) => {
+    try {
+        const kitId = parseInt(req.params.id, 10);
+        const userId = req.userId;
 
-    try{
-        const kit= await prisma.kit.create({
-            data:{
-                name: kitName,
-                config,
-                userId
+        if (isNaN(kitId) || !userId) {
+            res.status(400).json({ error: 'Paramètres invalides' });
+            return;
+        }
+
+        const kit = await prisma.kit.findFirst({
+            where: {
+                id: kitId,
+                userId: userId,
             }
-        })
-        return res.status(201).json({message:'Kit sauvegardé',kit});
-    }catch(err){
-        console.error('Erreur lors de la sauvegarde du kit:',err)
-        return res.status(500).json({message:'Erreur serveur',err});
+        });
+
+        if (!kit) {
+            res.status(404).json({ error: 'Kit non trouvé' });
+            return;
+        }
+
+        res.status(200).json(kit);
+    } catch (err) {
+        console.error("Erreur récupération du kit :", err);
+        res.status(500).json({ error: 'Erreur serveur' });
     }
-}
+};
 
-export const getUserKits = async(req: AuthenticateRequest, res: Response) => {
-    const userId = parseInt(req.params.userId);
 
-    if(isNaN(userId)){
-        return res.status(400).send({message: 'ID utilisateur invalide'});
-    }
+export const createKit = async (req: AuthenticateRequest, res: Response) => {
+    console.log('✅ Données reçues :', req.body);
+    const { name, config, isPublic, description, tags } = req.body;
+    console.log("✅ Backend : route POST /api/kits appelée");
 
-    if(req.userId !== userId){
-        res.status(403).send({error: 'Non Autorisé'});
+    if (!name || !config || typeof req.userId !== 'number') {
+        res.status(400).json({ error: 'Champs requis manquants' });
+        return;
     }
 
     try {
-        const kits = await prisma.kit.findMany({
-            where: {userId},
-            orderBy: {createdAt: 'desc'}
-        })
-        return res.status(200).json(kits)
-    }catch(err){
-        console.error('Erreur lors de la récupération des kits:', err);
-        return res.status(500).json({ message: 'Erreur serveur', err });
+        const newKit = await prisma.kit.create({
+            data: {
+                name: name,
+                config,
+                userId: req.userId,
+                isPublic: isPublic ?? false,
+                description: description || '',
+                tags: Array.isArray(tags) ? tags : [],
+            },
+        });
+
+        res.status(201).json({ message: 'Kit créé avec succès', kit: newKit });
+    } catch (err) {
+        console.error('Erreur création kit :', err);
+        res.status(500).json({ error: 'Erreur serveur', details: err });
     }
-}
+};
 
-export const updateKit = async (req: AuthenticateRequest, res: Response) => {
-    const kitId = parseInt(req.params.kitId);
-    const { kitName, config } = req.body;
-
-    if(isNaN(kitId)){
-        return res.status(400).send({message: 'ID de kit invalide'});
-    }
-
-    try{
-        const existingKit = await prisma.kit.findUnique({where: {id: kitId}});
-
-        if(!existingKit || existingKit.userId !== req.userId){
-            return res.status(403).json({message: 'Non autorisé'})
-        }
+export const updateKit = async (req: Request, res: Response) => {
+    try {
+        const kitId = parseInt(req.params.id, 10);
+        const { name, description, config, tags, isPublic } = req.body;
 
         const updatedKit = await prisma.kit.update({
-            where: {id: kitId},
-            data: {
-                name: kitName,
-                config
-            }
-        })
-        return res.status(200).json({message: 'Kit mis à jour', kit: updatedKit});
-    }catch(err){
-        console.error('Erreur lors de la mise à jour du kit:', err);
-        return res.status(500).json({ message: 'Erreur serveur', err });
+            where: { id: kitId },
+            data: { name, description, config, tags, isPublic },
+        });
+
+        res.status(200).json(updatedKit);
+    } catch (error) {
+        console.error('Erreur lors de la mise à jour du kit :', error);
+        res.status(500).json({ message: 'Erreur serveur' });
     }
-}
-
-export const deleteKit = async (req: AuthenticateRequest, res: Response) => {
-    const kitId = parseInt(req.params.kitId);
-
-    if(isNaN(kitId)){
-        return res.status(400).send({message: 'ID de kit invalide'});
-    }
-
-    try{
-        const existingKit = await prisma.kit.findUnique({ where: { id: kitId } });
-
-        if (!existingKit || existingKit.userId !== req.userId) {
-            return res.status(403).json({ message: 'Non autorisé' });
-        }
-
-        await prisma.kit.delete({where: {id: kitId}});
-        return res.status(200).json({message: 'Kit supprimé avec succès'});
-    }catch(err){
-        console.error('Erreur lors de la suppression du kit:', err);
-        return res.status(500).json({ message: 'Erreur serveur', err });
-    }
-}
+};
