@@ -709,6 +709,12 @@ ${config.value.darkTheme.enabled ? `
             }
           });
 
+          if (response.status === 401) {
+            userStore.clearUser();
+            await router.push('/login');
+            return; // Stoppe ici
+          }
+
           if (!response.ok) {
             throw new Error('Erreur lors de la récupération du kit');
           }

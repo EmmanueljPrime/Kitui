@@ -14,6 +14,16 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 });
 
+// Route de logout
+router.post('/logout', (req: Request, res: Response) => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // à true en prod
+        sameSite: 'lax'
+    });
+    res.status(200).json({ message: 'Déconnexion réussie' });
+});
+
 // Route de test pour vérifier que le routeur fonctionne
 router.get('/test', (_: Request, res: Response) => {
     res.json({ message: 'Le routeur d\'authentification fonctionne' });

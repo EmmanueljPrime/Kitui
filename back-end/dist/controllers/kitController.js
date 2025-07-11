@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateKit = exports.createKit = exports.getKitById = exports.getUserKits = void 0;
+exports.deleteKit = exports.updateKit = exports.createKit = exports.getKitById = exports.getUserKits = void 0;
 const prismaClient_1 = require("../prismaClient");
 const getUserKits = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -99,3 +99,28 @@ const updateKit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.updateKit = updateKit;
+const deleteKit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const { id } = req.params;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id; // si tu as le middleware d'authentification
+    if (!userId) {
+        return res.status(401).json({ message: "Non autorisé" });
+    }
+    try {
+        // On supprime le kit SI il appartient à l'utilisateur connecté
+        const deleted = yield prismaClient_1.prisma.kit.deleteMany({
+            where: {
+                id: Number(id),
+                userId,
+            }
+        });
+        if (deleted.count === 0) {
+            return res.status(404).json({ message: "Kit non trouvé ou non autorisé" });
+        }
+        res.status(204).end();
+    }
+    catch (error) {
+        res.status(500).json({ message: "Erreur serveur", error: error.message });
+    }
+});
+exports.deleteKit = deleteKit;

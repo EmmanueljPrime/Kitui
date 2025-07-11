@@ -23,6 +23,15 @@ router.post('/login', (req, res) => __awaiter(void 0, void 0, void 0, function* 
         res.status(500).json({ message: 'Erreur serveur', error: error.message });
     }
 }));
+// Route de logout
+router.post('/logout', (req, res) => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // à true en prod
+        sameSite: 'lax'
+    });
+    res.status(200).json({ message: 'Déconnexion réussie' });
+});
 // Route de test pour vérifier que le routeur fonctionne
 router.get('/test', (_, res) => {
     res.json({ message: 'Le routeur d\'authentification fonctionne' });

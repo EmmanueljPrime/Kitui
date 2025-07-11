@@ -1,7 +1,9 @@
 <template>
   <header class="dashboard-header">
     <div class="header-content">
-      <h1 class="page-title"> </h1>
+      <div class="header-left">
+        <img class="navbar-logo" src="/kituilogo.png" alt="Kitui Logo" />
+      </div>
       <div class="header-actions">
         <button v-if="showHelpButton" class="help-button" @click="$emit('help-click')">
           <span class="help-icon">?</span>
@@ -20,7 +22,6 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-
 export default defineComponent({
   name: 'AppHeader',
   props: {
@@ -59,6 +60,18 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.navbar-logo {
+  height: 38px;
+  width: auto;
+  display: block;
 }
 
 .page-title {
@@ -127,9 +140,14 @@ export default defineComponent({
   .dashboard-header {
     padding: 1rem 1.5rem;
   }
-
   .page-title {
     font-size: 1.25rem;
+  }
+  .navbar-logo {
+    height: 30px;
+  }
+  .header-left {
+    gap: 0.6rem;
   }
 }
 </style>

@@ -48,7 +48,6 @@
             <div class="dashboard-panel">
               <div class="panel-header">
                 <h3 class="panel-title">Kits récents</h3>
-                <button class="panel-action">Voir tous</button>
               </div>
               <div class="kit-list">
               <div
@@ -67,6 +66,7 @@
                   </p>
                 </div>
                 <button class="kit-action" @click="goToEditor(kit)">Éditer</button>
+                <DeleteButton @delete="deleteKit(kit.id)" />
               </div>
 
               <p v-if="kits.length === 0" style="margin-top: 1rem; color: #888;">Aucun kit créé pour le moment.</p>
@@ -113,6 +113,7 @@ import { useUserStore } from '../stores/userStore';
 import AppHeader from '../components/partials/Header.vue';
 import AppSidebar from '../components/partials/Sidebar.vue';
 import { useKitStore } from '@/stores/kitStore';
+import DeleteButton from "@/components/common/DeleteButton.vue";
 
 interface Kit {
   id: number;
@@ -128,6 +129,7 @@ interface Kit {
 export default defineComponent({
   name: 'DashboardView',
   components: {
+    DeleteButton,
     AppHeader,
     AppSidebar
   },
@@ -158,6 +160,12 @@ export default defineComponent({
           }
         });
 
+        if (response.status === 401) {
+          userStore.clearUser();
+          await router.push('/login');
+          return; // Stoppe ici
+        }
+
         if (!response.ok) {
           throw new Error('Erreur lors de la récupération des kits');
         }
@@ -168,13 +176,44 @@ export default defineComponent({
         console.error('❌ Erreur lors du fetch des kits :', error);
       }
     };
+    const deleteKit = async (id: number) => {
+      try {
+        const response = await fetch(`/api/kits/${id}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+
+        if (response.status === 401) {
+          userStore.clearUser();
+          await router.push('/login');
+          return; // Stoppe ici
+        }
+
+        if (!response.ok) throw new Error('Suppression échouée');
+        kits.value = kits.value.filter(kit => kit.id !== id);
+      } catch (e) {
+        alert('Suppression échouée !'+e);
+      }
+    };
 
     onMounted(() => {
       fetchKits();
     });
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+      try {
+        // Appel à la route de logout (supprime le cookie côté serveur)
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include', // indispensable pour envoyer le cookie
+        });
+      } catch (e) {
+        // Optionnel : tu peux log si erreur
+        console.error('Erreur lors du logout:', e);
+      }
+      // Nettoie ton store utilisateur (Pinia ou autre)
       userStore.clearUser();
+      // Redirige vers la page de connexion
       router.push('/login');
     };
 
@@ -208,6 +247,7 @@ export default defineComponent({
       showToken,
       showHelpModal,
       kits,
+      deleteKit,
       handleLogout,
       handleSidebarToggle,
       toggleTokenVisibility,

@@ -15,4 +15,6 @@ router.get('/:id', kitController_1.getKitById);
 router.post('/', kitController_1.createKit);
 // Route pour modifier un kit
 router.put('/:id', kitController_1.updateKit);
+// Route pour supprimer un kit
+router.delete('/:id', kitController_1.deleteKit);
 exports.default = router;

@@ -98,3 +98,29 @@ export const updateKit = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Erreur serveur' });
     }
 };
+
+export const deleteKit = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const userId = (req as any).user?.id; // si tu as le middleware d'authentification
+
+    if (!userId) {
+        return res.status(401).json({ message: "Non autorisé" });
+    }
+
+    try {
+        // On supprime le kit SI il appartient à l'utilisateur connecté
+        const deleted = await prisma.kit.deleteMany({
+            where: {
+                id: Number(id),
+                userId,
+            }
+        });
+
+        if (deleted.count === 0) {
+            return res.status(404).json({ message: "Kit non trouvé ou non autorisé" });
+        }
+        res.status(204).end();
+    } catch (error: any) {
+        res.status(500).json({ message: "Erreur serveur", error: error.message });
+    }
+};

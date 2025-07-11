@@ -1,6 +1,6 @@
 // src/routes/kitAdmin.ts
 import { Router } from 'express';
-import { getUserKits, getKitById, createKit, updateKit } from '../controllers/kitController';
+import { getUserKits, getKitById, createKit, updateKit, deleteKit } from '../controllers/kitController';
 import {authenticate, AuthenticateRequest} from '../middleware/authenticate';
 
 const router = Router();
@@ -19,5 +19,8 @@ router.post('/', createKit);
 
 // Route pour modifier un kit
 router.put('/:id', updateKit);
+
+// Route pour supprimer un kit
+router.delete('/:id', deleteKit);
 
 export default router;

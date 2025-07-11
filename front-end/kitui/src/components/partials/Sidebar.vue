@@ -8,7 +8,6 @@
     <aside class="sidebar" :class="{ 'sidebar-open': isOpen }">
       <div class="sidebar-header">
         <div class="logo">
-          <span class="logo-text">Kitui</span>
         </div>
       </div>
 
